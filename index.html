@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Organogramas</title>
+    <style>
+        :root {
+            --primary-color: #4a86e8;
+            --box-border: #2c5aa0;
+            --box-bg: #ffffff;
+            --admin-bg: #b6d7f9;
+            --dashed-border: #999999;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .controls {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, select, button {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        
+        button:hover {
+            background-color: var(--box-border);
+        }
+        
+        .organogram-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: auto;
+            min-height: 500px;
+            position: relative;
+        }
+        
+        #organogram {
+            position: relative;
+            margin: 0 auto;
+            width: fit-content;
+            min-height: 300px;
+        }
+        
+        .organogram-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            padding-top: 10px;
+        }
+        
+        .node {
+            position: absolute;
+            background-color: var(--box-bg);
+            border: 2px solid var(--box-border);
+            border-radius: 5px;
+            padding: 10px;
+            text-align: center;
+            min-width: 150px;
+            z-index: 1;
+            cursor: move;
+            font-size: 14px;
+        }
+        
+        .administrative {
+            background-color: var(--admin-bg);
+        }
+        
+        .dashed-border {
+            border: 2px dashed var(--dashed-border);
+        }
+        
+        .connection-line {
+            position: absolute;
+            background-color: var(--box-border);
+            z-index: 0;
+        }
+        
+        .vertical-line {
+            width: 2px;
+        }
+        
+        .horizontal-line {
+            height: 2px;
+        }
+        
+        .legend {
+            display: flex;
+            margin-top: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border: 1px solid #333;
+        }
+        
+        .legend-box.solid {
+            background-color: var(--box-bg);
+            border: 2px solid var(--box-border);
+        }
+        
+        .legend-box.administrative {
+            background-color: var(--admin-bg);
+            border: 2px solid var(--box-border);
+        }
+        
+        .legend-box.dashed {
+            background-color: var(--box-bg);
+            border: 2px dashed var(--dashed-border);
+        }
+        
+        .source-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 12px;
+            font-style: italic;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        .color-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .color-input {
+            width: 40px;
+            height: 30px;
+            padding: 0;
+            cursor: pointer;
+        }
+        
+        .general-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .general-option {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        #save-section, #json-output {
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        #json-output {
+            width: 100%;
+            height: 100px;
+            display: none;
+        }
+        
+        #file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gerador de Organogramas</h1>
+        
+        <div class="controls">
+            <div class="general-options">
+                <div class="general-option">
+                    <label for="organogram-title">Título do Organograma:</label>
+                    <input type="text" id="organogram-title" placeholder="Ex: ORGANOGRAMA DA PRÓ-REITORIA DE PLANEJAMENTO" style="width: 100%;">
+                </div>
+                
+                <div class="general-option">
+                    <label for="creation-year">Ano de Criação:</label>
+                    <input type="text" id="creation-year" placeholder="Ex: 2025" value="2025">
+                </div>
+            </div>
+            
+            <div>
+                <label for="node-title">Título da Unidade:</label>
+                <input type="text" id="node-title" placeholder="Ex: Pró-Reitoria de Administração">
+            </div>
+            
+            <div>
+                <label for="node-acronym">Sigla (opcional):</label>
+                <input type="text" id="node-acronym" placeholder="Ex: PRA">
+            </div>
+            
+            <div>
+                <label for="node-type">Tipo de Unidade:</label>
+                <select id="node-type">
+                    <option value="normal">Normal</option>
+                    <option value="administrative">Sem Unidade Siorg</option>
+                    <option value="dashed">Supervisionado</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="parent-node">Unidade Superior:</label>
+                <select id="parent-node">
+                    <option value="">-- Nenhum (Unidade Raiz) --</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="is-bold">Negrito:</label>
+                <input type="checkbox" id="is-bold">
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <label for="has-chief">Chefia:</label>
+                <input type="checkbox" id="has-chief">
+                <span id="chief-options" style="display: none; margin-left: 10px;">
+                    <label for="chief-type">Tipo:</label>
+                    <select id="chief-type">
+                        <option value="FG1">FG1</option>
+                        <option value="FG2">FG2</option>
+                        <option value="FG3">FG3</option>
+                        <option value="FG4">FG4</option>
+                        <option value="CD1">CD1</option>
+                        <option value="CD2">CD2</option>
+                        <option value="CD3">CD3</option>
+                        <option value="CD4">CD4</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                    
+                    <span id="other-chief-type" style="display: none; margin-left: 10px;">
+                        <label for="chief-type-other">Especificar:</label>
+                        <input type="text" id="chief-type-other" placeholder="Ex: FUC">
+                    </span>
+                </span>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <label>Cores:</label>
+                <div class="color-control">
+                    <label for="bg-color">Fundo:</label>
+                    <input type="color" id="bg-color" class="color-input" value="#ffffff">
+                    
+                    <label for="border-color" style="margin-left: 10px;">Borda:</label>
+                    <input type="color" id="border-color" class="color-input" value="#2c5aa0">
+                    
+                    <label for="text-color" style="margin-left: 10px;">Texto:</label>
+                    <input type="color" id="text-color" class="color-input" value="#000000">
+                    
+                    <label for="line-color" style="margin-left: 10px;">Linhas:</label>
+                    <input type="color" id="line-color" class="color-input" value="#2c5aa0">
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <button id="add-node">Adicionar Unidade</button>
+                <button id="remove-node">Remover Unidade Selecionada</button>
+                <button id="clear-all">Limpar Tudo</button>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <button id="save-btn">Salvar Organograma</button>
+                <button id="load-btn">Carregar Organograma</button>
+                <input type="file" id="file-input" accept=".json,.txt">
+            </div>
+            
+            <div id="save-section" style="display: none;">
+                <h3>Copie o texto abaixo e salve em um arquivo de texto:</h3>
+                <textarea id="json-output" rows="10"></textarea>
+            </div>
+        </div>
+        
+        <div class="organogram-container">
+            <div id="organogram-title-display" class="organogram-title"></div>
+            <div id="organogram"></div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box solid"></div>
+                <span>Unidade Siorg</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box administrative"></div>
+                <span>Sem Unidade Siorg</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box dashed"></div>
+                <span>Supervisão Administrativa</span>
+            </div>
+            <div class="source-info">
+                <span>Fonte: COPLAD / PROPLAN / UFSM</span>
+                <span><span id="footer-year">2025</span></span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const organogram = document.getElementById('organogram');
+            const organogramTitle = document.getElementById('organogram-title');
+            const organogramTitleDisplay = document.getElementById('organogram-title-display');
+            const creationYear = document.getElementById('creation-year');
+            const footerYear = document.getElementById('footer-year');
+            const nodeTitle = document.getElementById('node-title');
+            const nodeAcronym = document.getElementById('node-acronym');
+            const nodeType = document.getElementById('node-type');
+            const parentNode = document.getElementById('parent-node');
+            const isBold = document.getElementById('is-bold');
+            const hasChief = document.getElementById('has-chief');
+            const chiefOptions = document.getElementById('chief-options');
+            const chiefType = document.getElementById('chief-type');
+            const otherChiefType = document.getElementById('other-chief-type');
+            const chiefTypeOther = document.getElementById('chief-type-other');
+            const bgColor = document.getElementById('bg-color');
+            const borderColor = document.getElementById('border-color');
+            const textColor = document.getElementById('text-color');
+            const lineColor = document.getElementById('line-color');
+            const addNodeBtn = document.getElementById('add-node');
+            const removeNodeBtn = document.getElementById('remove-node');
+            const clearAllBtn = document.getElementById('clear-all');
+            const saveBtn = document.getElementById('save-btn');
+            const loadBtn = document.getElementById('load-btn');
+            const fileInput = document.getElementById('file-input');
+            const saveSection = document.getElementById('save-section');
+            const jsonOutput = document.getElementById('json-output');
+            
+            let nodes = [];
+            let selectedNode = null;
+            let nodeCounter = 0;
+            let connectionLineColor = '#2c5aa0';
+            
+            // Update organogram title and year
+            organogramTitle.addEventListener('input', function() {
+                organogramTitleDisplay.textContent = this.value;
+            });
+            
+            creationYear.addEventListener('input', function() {
+                footerYear.textContent = this.value;
+            });
+            
+            // Mostrar/ocultar opções de chefia
+            hasChief.addEventListener('change', function() {
+                chiefOptions.style.display = this.checked ? 'inline' : 'none';
+            });
+            
+            // Mostrar/ocultar campo personalizado para tipo de chefia
+            chiefType.addEventListener('change', function() {
+                otherChiefType.style.display = this.value === 'outro' ? 'inline' : 'none';
+            });
+            
+            // Update connection line color
+            lineColor.addEventListener('input', function() {
+                connectionLineColor = this.value;
+                document.querySelectorAll('.connection-line').forEach(line => {
+                    line.style.backgroundColor = connectionLineColor;
+                });
+            });
+            
+            // Node management functions
+            function addNode() {
+                const title = nodeTitle.value.trim();
+                const acronym = nodeAcronym.value.trim();
+                const type = nodeType.value;
+                const bold = isBold.checked;
+                const parentId = parentNode.value;
+                const bg = bgColor.value;
+                const border = borderColor.value;
+                const text = textColor.value;
+                const isChief = hasChief.checked;
+                let chiefPosition = '';
+                
+                if (isChief) {
+                    if (chiefType.value === 'outro') {
+                        chiefPosition = chiefTypeOther.value.trim();
+                    } else {
+                        chiefPosition = chiefType.value;
+                    }
+                }
+                
+                if (!title) {
+                    alert('Por favor, insira um título para a unidade.');
+                    return;
+                }
+                
+                const nodeId = 'node-' + nodeCounter++;
+                let displayText = title;
+                if (acronym) {
+                    displayText += ` (${acronym})`;
+                }
+                if (isChief && chiefPosition) {
+                    displayText += `\n${chiefPosition}`;
+                }
+                
+                const node = document.createElement('div');
+                node.id = nodeId;
+                node.className = 'node';
+                
+                // Add content with bold if needed
+                if (bold) {
+                    node.innerHTML = `<strong>${displayText.replace(/\n/g, '<br>')}</strong>`;
+                } else {
+                    node.innerHTML = displayText.replace(/\n/g, '<br>');
+                }
+                
+                node.setAttribute('data-title', title);
+                node.setAttribute('data-acronym', acronym);
+                node.setAttribute('data-parent', parentId);
+                node.setAttribute('data-bg-color', bg);
+                node.setAttribute('data-border-color', border);
+                node.setAttribute('data-text-color', text);
+                node.setAttribute('data-is-bold', bold);
+                node.setAttribute('data-is-chief', isChief);
+                node.setAttribute('data-chief-position', chiefPosition);
+                node.setAttribute('data-type', type);
+                
+                // Apply custom colors
+                node.style.backgroundColor = bg;
+                node.style.borderColor = border;
+                node.style.color = text;
+                
+                if (type === 'administrative') {
+                    node.classList.add('administrative');
+                    node.style.backgroundColor = bg;
+                } else if (type === 'dashed') {
+                    node.classList.add('dashed-border');
+                    node.style.borderStyle = 'dashed';
+                    node.style.borderColor = border;
+                }
+                
+                // Position the node
+                let top = 10;
+                let left = 10;
+                
+                if (parentId) {
+                    const parentNode = document.getElementById(parentId);
+                    if (parentNode) {
+                        // Find siblings with same parent
+                        const siblings = Array.from(document.querySelectorAll(`.node[data-parent="${parentId}"]`));
+                        
+                        if (siblings.length > 0) {
+                            const lastSibling = siblings[siblings.length - 1];
+                            const rect = lastSibling.getBoundingClientRect();
+                            
+                            left = parseInt(lastSibling.style.left || '10') + rect.width + 20;
+                            top = parseInt(lastSibling.style.top);
+                        } else {
+                            const parentRect = parentNode.getBoundingClientRect();
+                            
+                            left = parseInt(parentNode.style.left || '10');
+                            top = parseInt(parentNode.style.top || '10') + parentRect.height + 60;
+                        }
+                    }
+                }
+                
+                node.style.left = left + 'px';
+                node.style.top = top + 'px';
+                
+                organogram.appendChild(node);
+                nodes.push({
+                    id: nodeId,
+                    title: title,
+                    acronym: acronym,
+                    type: type,
+                    bold: bold,
+                    parentId: parentId,
+                    bgColor: bg,
+                    borderColor: border,
+                    textColor: text,
+                    isChief: isChief,
+                    chiefPosition: chiefPosition,
+                    left: left,
+                    top: top
+                });
+                
+                // Add to parent selection dropdown
+                const option = document.createElement('option');
+                option.value = nodeId;
+                option.textContent = title + (acronym ? ` (${acronym})` : '');
+                parentNode.appendChild(option);
+                
+                drawConnections();
+                
+                // Make the node draggable
+                makeDraggable(node);
+                
+                // Add click event to select the node
+                node.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    selectNode(node);
+                });
+                
+                // Clear inputs
+                nodeTitle.value = '';
+                nodeAcronym.value = '';
+                isBold.checked = false;
+                hasChief.checked = false;
+                chiefOptions.style.display = 'none';
+                chiefType.value = 'FG1';
+                otherChiefType.style.display = 'none';
+                chiefTypeOther.value = '';
+            }
+            
+            function selectNode(node) {
+                // Deselect previously selected node
+                if (selectedNode) {
+                    selectedNode.style.outline = 'none';
+                }
+                
+                selectedNode = node;
+                selectedNode.style.outline = '2px solid red';
+                
+                // Update color pickers to show the selected node's colors
+                bgColor.value = node.getAttribute('data-bg-color') || '#ffffff';
+                borderColor.value = node.getAttribute('data-border-color') || '#2c5aa0';
+                textColor.value = node.getAttribute('data-text-color') || '#000000';
+                
+                // Update node type
+                const nodeTypeValue = node.getAttribute('data-type') || 'normal';
+                nodeType.value = nodeTypeValue;
+                
+                // Update bold option
+                isBold.checked = node.getAttribute('data-is-bold') === 'true';
+                
+                // Update chief options
+                const isChief = node.getAttribute('data-is-chief') === 'true';
+                const chiefPosition = node.getAttribute('data-chief-position') || '';
+                
+                hasChief.checked = isChief;
+                chiefOptions.style.display = isChief ? 'inline' : 'none';
+                
+                if (isChief) {
+                    if (['FG1', 'FG2', 'FG3', 'FG4', 'CD1', 'CD2', 'CD3', 'CD4'].includes(chiefPosition)) {
+                        chiefType.value = chiefPosition;
+                        otherChiefType.style.display = 'none';
+                    } else {
+                        chiefType.value = 'outro';
+                        otherChiefType.style.display = 'inline';
+                        chiefTypeOther.value = chiefPosition;
+                    }
+                }
+                
+                // Add event listeners for real-time color updates
+                const updateColors = function() {
+                    node.style.backgroundColor = bgColor.value;
+                    node.style.borderColor = borderColor.value;
+                    node.style.color = textColor.value;
+                    
+                    // Update the data attributes
+                    node.setAttribute('data-bg-color', bgColor.value);
+                    node.setAttribute('data-border-color', borderColor.value);
+                    node.setAttribute('data-text-color', textColor.value);
+                    
+                    // Update the node data in the array
+                    const nodeData = nodes.find(n => n.id === node.id);
+                    if (nodeData) {
+                        nodeData.bgColor = bgColor.value;
+                        nodeData.borderColor = borderColor.value;
+                        nodeData.textColor = textColor.value;
+                    }
+                };
+                
+                // Add temporary event listeners for color change while node is selected
+                bgColor.addEventListener('input', updateColors);
+                borderColor.addEventListener('input', updateColors);
+                textColor.addEventListener('input', updateColors);
+                
+                // Store the event listeners to remove them when another node is selected
+                node.updateColorListeners = updateColors;
+                
+                // Add event listener for chief, type and bold updates
+                const updateNode = function() {
+                    const isChief = hasChief.checked;
+                    const isBoldChecked = isBold.checked;
+                    const typeValue = nodeType.value;
+                    let chiefPosition = '';
+                    
+                    if (isChief) {
+                        if (chiefType.value === 'outro') {
+                            chiefPosition = chiefTypeOther.value.trim();
+                        } else {
+                            chiefPosition = chiefType.value;
+                        }
+                    }
+                    
+                    // Update the data attributes
+                    node.setAttribute('data-is-chief', isChief);
+                    node.setAttribute('data-chief-position', chiefPosition);
+                    node.setAttribute('data-is-bold', isBoldChecked);
+                    node.setAttribute('data-type', typeValue);
+                    
+                    // Update display text
+                    let displayText = node.getAttribute('data-title');
+                    if (node.getAttribute('data-acronym')) {
+                        displayText += ` (${node.getAttribute('data-acronym')})`;
+                    }
+                    if (isChief && chiefPosition) {
+                        displayText += `<br>${chiefPosition}`;
+                    }
+                    
+                    if (isBoldChecked) {
+                        node.innerHTML = `<strong>${displayText}</strong>`;
+                    } else {
+                        node.innerHTML = displayText;
+                    }
+                    
+                    // Update node class based on type
+                    node.classList.remove('administrative', 'dashed-border');
+                    node.style.borderStyle = 'solid';
+                    
+                    if (typeValue === 'administrative') {
+                        node.classList.add('administrative');
+                    } else if (typeValue === 'dashed') {
+                        node.classList.add('dashed-border');
+                        node.style.borderStyle = 'dashed';
+                    }
+                    
+                    // Update the node data in the array
+                    const nodeData = nodes.find(n => n.id === node.id);
+                    if (nodeData) {
+                        nodeData.isChief = isChief;
+                        nodeData.chiefPosition = chiefPosition;
+                        nodeData.bold = isBoldChecked;
+                        nodeData.type = typeValue;
+                    }
+                };
+                
+                hasChief.addEventListener('change', updateNode);
+                chiefType.addEventListener('change', updateNode);
+                chiefTypeOther.addEventListener('input', updateNode);
+                isBold.addEventListener('change', updateNode);
+                nodeType.addEventListener('change', updateNode);
+                
+                // Store the event listeners
+                node.updateNodeListeners = updateNode;
+            }
+            
+            function removeSelectedNode() {
+                if (!selectedNode) {
+                    alert('Por favor, selecione uma unidade para remover.');
+                    return;
+                }
+                
+                const nodeId = selectedNode.id;
+                
+                // Check if node has children
+                const children = document.querySelectorAll(`.node[data-parent="${nodeId}"]`);
+                if (children.length > 0) {
+                    alert('Esta unidade possui unidades subordinadas. Remova-as primeiro.');
+                    return;
+                }
+                
+                // Remove from the DOM
+                organogram.removeChild(selectedNode);
+                
+                // Remove from the nodes array
+                nodes = nodes.filter(node => node.id !== nodeId);
+                
+                // Remove from parent dropdown
+                Array.from(parentNode.options).forEach(option => {
+                    if (option.value === nodeId) {
+                        parentNode.removeChild(option);
+                    }
+                });
+                
+                selectedNode = null;
+                drawConnections();
+            }
+            
+            function clearAll() {
+                if (confirm('Tem certeza que deseja limpar todo o organograma?')) {
+                    organogram.innerHTML = '';
+                    parentNode.innerHTML = '<option value="">-- Nenhum (Unidade Raiz) --</option>';
+                    nodes = [];
+                    selectedNode = null;
+                    nodeCounter = 0;
+                }
+            }
+            
+            function drawConnections() {
+                // Remove existing connections
+                const connections = document.querySelectorAll('.connection-line');
+                connections.forEach(connection => connection.remove());
+                
+                // Draw new connections
+                nodes.forEach(nodeData => {
+                    if (nodeData.parentId) {
+                        const child = document.getElementById(nodeData.id);
+                        const parent = document.getElementById(nodeData.parentId);
+                        
+                        if (child && parent) {
+                            drawConnection(parent, child);
+                        }
+                    }
+                });
+            }
+            
+            function drawConnection(parent, child) {
+                const parentRect = parent.getBoundingClientRect();
+                const childRect = child.getBoundingClientRect();
+                const organogramRect = organogram.getBoundingClientRect();
+                
+                const parentCenterX = parseInt(parent.style.left) + parentRect.width / 2;
+                const parentBottom = parseInt(parent.style.top) + parentRect.height;
+                const childCenterX = parseInt(child.style.left) + childRect.width / 2;
+                const childTop = parseInt(child.style.top);
+                
+                // Vertical line from parent
+                const verticalLine1 = document.createElement('div');
+                verticalLine1.className = 'connection-line vertical-line';
+                verticalLine1.style.left = parentCenterX + 'px';
+                verticalLine1.style.top = parentBottom + 'px';
+                verticalLine1.style.height = Math.max(10, (childTop - parentBottom) / 2) + 'px';
+                verticalLine1.style.backgroundColor = connectionLineColor;
+                organogram.appendChild(verticalLine1);
+                
+                // Horizontal line
+                const horizontalLine = document.createElement('div');
+                horizontalLine.className = 'connection-line horizontal-line';
+                const lineLeft = Math.min(parentCenterX, childCenterX);
+                const lineWidth = Math.abs(parentCenterX - childCenterX);
+                horizontalLine.style.left = lineLeft + 'px';
+                horizontalLine.style.top = (parentBottom + Math.max(10, (childTop - parentBottom) / 2)) + 'px';
+                horizontalLine.style.width = lineWidth + 'px';
+                horizontalLine.style.backgroundColor = connectionLineColor;
+                organogram.appendChild(horizontalLine);
+                
+                // Vertical line to child
+                const verticalLine2 = document.createElement('div');
+                verticalLine2.className = 'connection-line vertical-line';
+                verticalLine2.style.left = childCenterX + 'px';
+                verticalLine2.style.top = (parentBottom + Math.max(10, (childTop - parentBottom) / 2)) + 'px';
+                verticalLine2.style.height = (childTop - (parentBottom + Math.max(10, (childTop - parentBottom) / 2))) + 'px';
+                verticalLine2.style.backgroundColor = connectionLineColor;
+                organogram.appendChild(verticalLine2);
+            }
+            
+            function makeDraggable(element) {
+                let offsetX, offsetY, isDragging = false;
+                
+                element.addEventListener('mousedown', function(e) {
+                    if (e.button !== 0) return; // Only left mouse button
+                    
+                    offsetX = e.clientX - element.getBoundingClientRect().left;
+                    offsetY = e.clientY - element.getBoundingClientRect().top;
+                    isDragging = true;
+                    
+                    // Prevent text selection during drag
+                    document.body.style.userSelect = 'none';
+                    
+                    // Bring to front
+                    Array.from(document.querySelectorAll('.node')).forEach(node => {
+                        node.style.zIndex = "1";
+                    });
+                    element.style.zIndex = "10";
+                    
+                    // Select the node
+                    selectNode(element);
+                });
+                
+                document.addEventListener('mousemove', function(e) {
+                    if (!isDragging) return;
+                    
+                    const organogramRect = organogram.getBoundingClientRect();
+                    const x = e.clientX - offsetX - organogramRect.left;
+                    const y = e.clientY - offsetY - organogramRect.top;
+                    
+                    element.style.left = x + 'px';
+                    element.style.top = y + 'px';
+                    
+                    // Update the position in the nodes array
+                    const nodeData = nodes.find(n => n.id === element.id);
+                    if (nodeData) {
+                        nodeData.left = x;
+                        nodeData.top = y;
+                    }
+                    
+                    drawConnections();
+                });
+                
+                document.addEventListener('mouseup', function() {
+                    if (isDragging) {
+                        isDragging = false;
+                        document.body.style.userSelect = '';
+                    }
+                });
+                
+                // Touch support for mobile
+                element.addEventListener('touchstart', function(e) {
+                    const touch = e.touches[0];
+                    offsetX = touch.clientX - element.getBoundingClientRect().left;
+                    offsetY = touch.clientY - element.getBoundingClientRect().top;
+                    isDragging = true;
+                    
+                    // Select the node
+                    selectNode(element);
+                    
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('touchmove', function(e) {
+                    if (!isDragging) return;
+                    
+                    const touch = e.touches[0];
+                    const organogramRect = organogram.getBoundingClientRect();
+                    const x = touch.clientX - offsetX - organogramRect.left;
+                    const y = touch.clientY - offsetY - organogramRect.top;
+                    
+                    element.style.left = x + 'px';
+                    element.style.top = y + 'px';
+                    
+                    // Update the position in the nodes array
+                    const nodeData = nodes.find(n => n.id === element.id);
+                    if (nodeData) {
+                        nodeData.left = x;
+                        nodeData.top = y;
+                    }
+                    
+                    drawConnections();
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('touchend', function() {
+                    isDragging = false;
+                });
+            }
+            
+            // Salvar o organograma como TXT
+            function saveOrganogram() {
+                // Atualizar as informações mais recentes de cada nó
+                document.querySelectorAll('.node').forEach(node => {
+                    const nodeData = nodes.find(n => n.id === node.id);
+                    if (nodeData) {
+                        nodeData.left = parseInt(node.style.left);
+                        nodeData.top = parseInt(node.style.top);
+                    }
+                });
+                
+                // Criar o objeto de configuração completo
+                const organogramData = {
+                    title: organogramTitle.value,
+                    year: creationYear.value,
+                    lineColor: connectionLineColor,
+                    nodes: nodes,
+                    nodeCounter: nodeCounter
+                };
+                
+                // Converter para JSON
+                const jsonData = JSON.stringify(organogramData, null, 2);
+                
+                // Mostrar a área de texto
+                saveSection.style.display = 'block';
+                jsonOutput.style.display = 'block';
+                jsonOutput.value = jsonData;
+                
+                // Selecionar todo o texto para facilitar a cópia
+                jsonOutput.select();
+                
+                // Tentar fazer uma cópia automática para o clipboard
+                try {
+                    document.execCommand('copy');
+                    alert("O texto foi copiado para a área de transferência! Cole-o em um editor de texto e salve como .txt");
+                } catch (e) {
+                    alert("Por favor, selecione e copie o texto manualmente e salve como .txt");
+                }
+            }
+            
+            // Carregar um organograma a partir de um arquivo JSON
+            function loadOrganogram(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        // Limpar organograma atual
+                        clearAll();
+                        
+                        // Carregar dados
+                        const organogramData = JSON.parse(e.target.result);
+                        
+                        // Restaurar título e ano
+                        organogramTitle.value = organogramData.title || '';
+                        organogramTitleDisplay.textContent = organogramData.title || '';
+                        creationYear.value = organogramData.year || '2025';
+                        footerYear.textContent = organogramData.year || '2025';
+                        
+                        // Restaurar cor da linha
+                        connectionLineColor = organogramData.lineColor || '#2c5aa0';
+                        lineColor.value = connectionLineColor;
+                        
+                        // Restaurar contador de nós
+                        nodeCounter = organogramData.nodeCounter || 0;
+                        
+                        // Primeiro, criar todos os nós
+                        organogramData.nodes.forEach(nodeData => {
+                            const node = document.createElement('div');
+                            node.id = nodeData.id;
+                            node.className = 'node';
+                            
+                            // Adicionar conteúdo (com negrito se necessário)
+                            let displayText = nodeData.title;
+                            if (nodeData.acronym) {
+                                displayText += ` (${nodeData.acronym})`;
+                            }
+                            if (nodeData.isChief && nodeData.chiefPosition) {
+                                displayText += `<br>${nodeData.chiefPosition}`;
+                            }
+                            
+                            if (nodeData.bold) {
+                                node.innerHTML = `<strong>${displayText}</strong>`;
+                            } else {
+                                node.innerHTML = displayText;
+                            }
+                            
+                            // Configurar atributos
+                            node.setAttribute('data-title', nodeData.title);
+                            node.setAttribute('data-acronym', nodeData.acronym || '');
+                            node.setAttribute('data-parent', nodeData.parentId || '');
+                            node.setAttribute('data-bg-color', nodeData.bgColor || '#ffffff');
+                            node.setAttribute('data-border-color', nodeData.borderColor || '#2c5aa0');
+                            node.setAttribute('data-text-color', nodeData.textColor || '#000000');
+                            node.setAttribute('data-is-bold', nodeData.bold || false);
+                            node.setAttribute('data-is-chief', nodeData.isChief || false);
+                            node.setAttribute('data-chief-position', nodeData.chiefPosition || '');
+                            node.setAttribute('data-type', nodeData.type || 'normal');
+                            
+                            // Aplicar cores personalizadas
+                            node.style.backgroundColor = nodeData.bgColor || '#ffffff';
+                            node.style.borderColor = nodeData.borderColor || '#2c5aa0';
+                            node.style.color = nodeData.textColor || '#000000';
+                            
+                            // Aplicar tipo
+                            if (nodeData.type === 'administrative') {
+                                node.classList.add('administrative');
+                            } else if (nodeData.type === 'dashed') {
+                                node.classList.add('dashed-border');
+                                node.style.borderStyle = 'dashed';
+                            }
+                            
+                            // Posição
+                            node.style.left = (nodeData.left || 10) + 'px';
+                            node.style.top = (nodeData.top || 10) + 'px';
+                            
+                            // Adicionar ao DOM
+                            organogram.appendChild(node);
+                            
+                            // Adicionar ao dropdown de pais
+                            const option = document.createElement('option');
+                            option.value = nodeData.id;
+                            option.textContent = nodeData.title + (nodeData.acronym ? ` (${nodeData.acronym})` : '');
+                            parentNode.appendChild(option);
+                            
+                            // Tornar arrastável
+                            makeDraggable(node);
+                            
+                            // Evento de clique para selecionar
+                            node.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                selectNode(node);
+                            });
+                        });
+                        
+                        // Atualizar array de nós
+                        nodes = [...organogramData.nodes];
+                        
+                        // Desenhar conexões após criar todos os nós
+                        drawConnections();
+                        
+                        alert('Organograma carregado com sucesso!');
+                    } catch (error) {
+                        console.error('Erro ao carregar o arquivo:', error);
+                        alert('Erro ao carregar o arquivo. Verifique se é um arquivo JSON válido de organograma.');
+                    }
+                };
+                reader.readAsText(file);
+                
+                // Limpar a seleção do arquivo para permitir carregar o mesmo arquivo novamente
+                fileInput.value = '';
+            }
+            
+            // Event listeners
+            addNodeBtn.addEventListener('click', addNode);
+            removeNodeBtn.addEventListener('click', removeSelectedNode);
+            clearAllBtn.addEventListener('click', clearAll);
+            saveBtn.addEventListener('click', saveOrganogram);
+            loadBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            fileInput.addEventListener('change', loadOrganogram);
+            
+            // Click on background to deselect
+            organogram.addEventListener('click', function(e) {
+                if (e.target === organogram) {
+                    if (selectedNode) {
+                        selectedNode.style.outline = 'none';
+                        selectedNode = null;
+                    }
+                }
+            });
+            
+            // Initial setup - create a default root node
+            nodeTitle.value = "Pró-Reitoria de Administração";
+            nodeAcronym.value = "PRA";
+            organogramTitle.value = "ORGANOGRAMA DA PRÓ-REITORIA DE ADMINISTRAÇÃO";
+            organogramTitleDisplay.textContent = "ORGANOGRAMA DA PRÓ-REITORIA DE ADMINISTRAÇÃO";
+            footerYear.textContent = creationYear.value;
+            addNode();
+        });
+    </script>
+</body>
+</html>
